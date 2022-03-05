@@ -26,6 +26,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         uploadImageButton.setOnClickListener {
+
             Intent(Intent.ACTION_GET_CONTENT).also {
                 it.type = "image/*"
                 startActivityForResult(it,100)
@@ -40,19 +41,25 @@ class MainActivity : AppCompatActivity() {
             val inputString = application.assets.open(fileName).bufferedReader().use{it.readText()}
             var townList = inputString.split("\n")
 
+            //Log.d("checking",townList.size.toString())
+
             var resized : Bitmap = Bitmap.createScaledBitmap(bitmap,180,180,true)
 
             val model = TfLiteModel.newInstance(this)
 
             val inputFeature0 = TensorBuffer.createFixedSize(intArrayOf(1, 180, 180, 3), DataType.FLOAT32)
-            var tbuffer = TensorImage.fromBitmap(resized)
 
-            var byteBuffer : ByteBuffer = tbuffer.buffer
+            var byteBuffer : ByteBuffer = ByteBuffer.allocateDirect(4*180*180*3)
+
+//            Log.d("sizes_of_buffers","Byte Buffer"+byteBuffer.toString())
+//            Log.d("sizes_of_buffers","input feature"+inputFeature0.buffer.toString())
             inputFeature0.loadBuffer(byteBuffer)
 
             val outputs = model.process(inputFeature0)
             val outputFeature0 = outputs.outputFeature0AsTensorBuffer
             var max = getMax(outputFeature0.floatArray)
+
+            //Log.d("irriated",outputFeature0.floatArray[1].toString())
 
             var answer : String = townList[max]
             model.close()
@@ -64,15 +71,9 @@ class MainActivity : AppCompatActivity() {
     }
     
     fun getMax(arr : FloatArray) : Int{
-        var ind = 0
-        var min = 0.0f
-        for(i in 0..2){
-            if(arr[i]>min){
-                ind = i
-                min = arr[i]
-            }
-        }
-        return ind
+        if(arr[0]<arr[1])
+            return 1
+        return 0
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
